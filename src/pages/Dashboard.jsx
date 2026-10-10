@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { StatCard } from '../components/dashboard/StatCard';
 import { CheckCircle2, Clock, Flame, Calendar as CalendarIcon, Plus, AlertTriangle, Bell } from 'lucide-react';
-import { isToday, isThisWeek, parseISO, isPast, isTomorrow, differenceInDays, format } from 'date-fns';
+import { isToday, isThisWeek, parseISO, isPast, isTomorrow, differenceInCalendarDays, format, startOfDay, subDays } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import TaskForm from '../components/tasks/TaskForm';
 
 export default function Dashboard() {
-  const { tasks, studySessions, settings } = useAppContext();
+  const { tasks, studySessions, settings, toggleTask } = useAppContext();
   const [isAdding, setIsAdding] = useState(false);
   const [dismissedAlerts, setDismissedAlerts] = useState([]);
 
@@ -20,14 +20,25 @@ export default function Dashboard() {
   const weeklyStudyMinutes = thisWeekSessions.reduce((acc, curr) => acc + (curr.duration || 0), 0);
   const weeklyStudyHours = (weeklyStudyMinutes / 60).toFixed(1);
 
-  const streak = 1;
+  // Count consecutive calendar days with at least one recorded study session.
+  const studiedDays = new Set(studySessions.map(session => {
+    const date = parseISO(session.date);
+    return Number.isNaN(date.getTime()) ? null : format(date, 'yyyy-MM-dd');
+  }).filter(Boolean));
+  let streak = 0;
+  let streakCursor = startOfDay(new Date());
+  if (!studiedDays.has(format(streakCursor, 'yyyy-MM-dd'))) streakCursor = subDays(streakCursor, 1);
+  while (studiedDays.has(format(streakCursor, 'yyyy-MM-dd'))) {
+    streak += 1;
+    streakCursor = subDays(streakCursor, 1);
+  }
 
   // Deadline warning tasks: overdue, today, or tomorrow
   const warningTasks = tasks
     .filter(t => !t.completed && t.dueDate && !dismissedAlerts.includes(t.id))
     .map(t => {
       const date = parseISO(t.dueDate);
-      const daysLeft = differenceInDays(date, new Date());
+      const daysLeft = differenceInCalendarDays(date, new Date());
       let urgency = null;
       if (isPast(date) && !isToday(date)) urgency = 'overdue';
       else if (isToday(date)) urgency = 'today';
@@ -43,7 +54,7 @@ export default function Dashboard() {
     .filter(t => {
       if (t.completed || !t.dueDate) return false;
       const d = parseISO(t.dueDate);
-      const diff = differenceInDays(d, new Date());
+      const diff = differenceInCalendarDays(d, new Date());
       return diff >= 0 && diff <= 7;
     })
     .sort((a, b) => parseISO(a.dueDate) - parseISO(b.dueDate))
@@ -148,7 +159,7 @@ export default function Dashboard() {
               <div className="space-y-3">
                 {todayTasks.map(task => (
                   <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                    <div className="w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-600 shrink-0"></div>
+                    <button type="button" onClick={() => toggleTask(task.id)} aria-label={`Mark ${task.title} complete`} className="w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-600 hover:border-accent-violet hover:bg-accent-violet/10 shrink-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-violet"></button>
                     <div className="flex-1">
                       <p className="font-medium text-slate-900 dark:text-slate-100">{task.title}</p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">{task.type}</p>
@@ -182,7 +193,7 @@ export default function Dashboard() {
               <div className="space-y-3">
                 {upcomingTasks.map(task => {
                   const dueDate = parseISO(task.dueDate);
-                  const diff = differenceInDays(dueDate, new Date());
+                  const diff = differenceInCalendarDays(dueDate, new Date());
                   let label = format(dueDate, 'MMM d');
                   if (diff === 0) label = 'Today';
                   else if (diff === 1) label = 'Tomorrow';
