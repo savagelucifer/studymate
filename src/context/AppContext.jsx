@@ -7,38 +7,42 @@ const initialSubjects = [];
 
 const initialTasks = [];
 
+// Browser storage can be unavailable or contain invalid JSON; keep the app usable either way.
+const readStorage = (key, fallback) => {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 export function AppProvider({ children }) {
   const [subjects, setSubjects] = useState(() => {
-    const saved = localStorage.getItem('studymate-subjects');
-    return saved ? JSON.parse(saved) : initialSubjects;
+    return readStorage('studymate-subjects', initialSubjects);
   });
 
   const [tasks, setTasks] = useState(() => {
-    const saved = localStorage.getItem('studymate-tasks');
-    return saved ? JSON.parse(saved) : initialTasks;
+    return readStorage('studymate-tasks', initialTasks);
   });
 
   const [studySessions, setStudySessions] = useState(() => {
-    const saved = localStorage.getItem('studymate-sessions');
-    return saved ? JSON.parse(saved) : [];
+    return readStorage('studymate-sessions', []);
   });
 
   const [timetable, setTimetable] = useState(() => {
-    const saved = localStorage.getItem('studymate-timetable');
-    // Default empty timetable
-    return saved ? JSON.parse(saved) : { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] };
+    return readStorage('studymate-timetable', { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] });
   });
 
   const [settings, setSettings] = useState(() => {
-    const saved = localStorage.getItem('studymate-settings');
-    return saved ? JSON.parse(saved) : {
+    return readStorage('studymate-settings', {
       studentName: '',
       isFirstLaunch: true,
       dailyGoalMinutes: 120,
       availableDays: [1, 2, 3, 4, 5],
       preferredStartTime: '18:00',
       preferredEndTime: '22:00'
-    };
+    });
   });
 
   useEffect(() => {
