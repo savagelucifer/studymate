@@ -19,7 +19,7 @@ export default function AppLayout() {
           <button type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" />
           <div className="relative h-full w-72 max-w-[85vw] shadow-2xl">
             <button type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} className="absolute right-3 top-3 z-10 rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><X size={20} /></button>
-            <Sidebar />
+            <Sidebar onNavigate={() => setMobileNavOpen(false)} />
           </div>
         </div>
       )}
