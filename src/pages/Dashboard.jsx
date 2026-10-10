@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { StatCard } from '../components/dashboard/StatCard';
 import { CheckCircle2, Clock, Flame, CalendarDays, Plus, AlertTriangle, Bell, ArrowUpRight, BookOpen, Target, Sparkles } from 'lucide-react';
@@ -67,7 +67,7 @@ export default function Dashboard() {
 
   const dateLabel = format(new Date(), 'EEEE, MMMM d');
   const firstName = (settings.studentName || 'Student').trim().split(/\s+/)[0];
-  const nextTask = useMemo(() => upcomingTasks[0], [upcomingTasks]);
+  const nextTask = upcomingTasks[0];
 
   return (
     <div className="mx-auto max-w-[1440px] space-y-6 pb-8">
