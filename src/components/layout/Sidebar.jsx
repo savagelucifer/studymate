@@ -17,7 +17,7 @@ const navItems = [
   { path: '/analytics', label: 'Progress & Analytics', icon: BarChart2 },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate }) {
   return (
     <div className="flex flex-col h-full bg-white dark:bg-charcoal border-r border-slate-200 dark:border-slate-800">
       <div className="p-6 flex items-center gap-3">
@@ -32,6 +32,7 @@ export default function Sidebar() {
           <NavLink
             key={item.path}
             to={item.path}
+            onClick={onNavigate}
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200',
@@ -50,6 +51,7 @@ export default function Sidebar() {
       <div className="p-4 mt-auto">
         <NavLink
           to="/settings"
+          onClick={onNavigate}
           className={({ isActive }) =>
             cn(
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200',
