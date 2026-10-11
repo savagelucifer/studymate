@@ -4,8 +4,23 @@ import { v4 as uuidv4 } from 'uuid';
 const AppContext = createContext();
 
 const initialSubjects = [];
-
 const initialTasks = [];
+const ACTIVITY_RESET_KEY = 'studymate-activity-reset-v1';
+
+// Run a one-time data migration for the fresh launch.
+// Only task history and study activity are cleared; subjects, timetable,
+// profile, and preferences are deliberately preserved.
+const resetActivityDataOnce = () => {
+  try {
+    if (localStorage.getItem(ACTIVITY_RESET_KEY) === 'done') return;
+
+    localStorage.setItem('studymate-tasks', JSON.stringify(initialTasks));
+    localStorage.setItem('studymate-sessions', JSON.stringify([]));
+    localStorage.setItem(ACTIVITY_RESET_KEY, 'done');
+  } catch {
+    // Storage may be unavailable; the app should still be able to render.
+  }
+};
 
 // Browser storage can be unavailable or contain invalid JSON; keep the app usable either way.
 const readStorage = (key, fallback) => {
@@ -23,6 +38,8 @@ export function AppProvider({ children }) {
   });
 
   const [tasks, setTasks] = useState(() => {
+    // Clear existing task/session history once, before loading task state.
+    resetActivityDataOnce();
     return readStorage('studymate-tasks', initialTasks);
   });
 
