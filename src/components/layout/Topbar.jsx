@@ -39,10 +39,10 @@ export default function Topbar({ onMenuClick }) {
   };
 
   return (
-    <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-charcoal flex items-center justify-between px-4 sm:px-6 shrink-0 z-20 sticky top-0">
+    <header className="sticky top-0 z-20 flex h-[72px] shrink-0 items-center justify-between border-b border-white/70 bg-white/75 px-4 backdrop-blur-2xl dark:border-slate-800/80 dark:bg-slate-950/75 sm:px-6">
       <div className="flex items-center gap-3">
         <button type="button" onClick={onMenuClick} aria-label="Open navigation" className="md:hidden rounded-lg p-2 -ml-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-violet"><Menu size={21} /></button>
-        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100 hidden md:block">
+        <h2 className="hidden text-[15px] font-semibold tracking-tight text-slate-800 dark:text-slate-100 md:block">
           {getGreeting()}, {settings.studentName || 'Student'} 👋
         </h2>
       </div>
