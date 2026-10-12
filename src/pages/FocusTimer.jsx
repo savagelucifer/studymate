@@ -9,7 +9,26 @@ export default function FocusTimer() {
   const { subjects, addStudySession, addSubject } = useAppContext();
 
   const [mode, setMode] = useState('focus');
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [durations, setDurations] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('studymate-timer-durations') || '{}');
+      return {
+        focus: Number.isInteger(saved.focus) && saved.focus >= 1 && saved.focus <= 180 ? saved.focus : 25,
+        shortBreak: Number.isInteger(saved.shortBreak) && saved.shortBreak >= 1 && saved.shortBreak <= 60 ? saved.shortBreak : 5,
+        longBreak: Number.isInteger(saved.longBreak) && saved.longBreak >= 1 && saved.longBreak <= 120 ? saved.longBreak : 15
+      };
+    } catch {
+      return { focus: 25, shortBreak: 5, longBreak: 15 };
+    }
+  });
+  const [timeLeft, setTimeLeft] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('studymate-timer-durations') || '{}');
+      return (Number.isInteger(saved.focus) && saved.focus >= 1 && saved.focus <= 180 ? saved.focus : 25) * 60;
+    } catch {
+      return 25 * 60;
+    }
+  });
   const [isActive, setIsActive] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [isStopped, setIsStopped] = useState(false);
@@ -21,9 +40,25 @@ export default function FocusTimer() {
   const savedRef = useRef(false);
 
   const modes = {
-    focus: { label: 'Focus', minutes: 25, icon: Brain, color: 'text-accent-violet' },
-    shortBreak: { label: 'Short Break', minutes: 5, icon: Coffee, color: 'text-emerald-500' },
-    longBreak: { label: 'Long Break', minutes: 15, icon: Coffee, color: 'text-blue-500' }
+    focus: { label: 'Focus', minutes: durations.focus, icon: Brain, color: 'text-accent-violet' },
+    shortBreak: { label: 'Short Break', minutes: durations.shortBreak, icon: Coffee, color: 'text-emerald-500' },
+    longBreak: { label: 'Long Break', minutes: durations.longBreak, icon: Coffee, color: 'text-blue-500' }
+  };
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('studymate-timer-durations', JSON.stringify(durations));
+    } catch {
+      // Timer settings still work for this visit if storage is unavailable.
+    }
+  }, [durations]);
+
+  const updateDuration = (key, rawValue) => {
+    if (rawValue === '') return;
+    const limits = { focus: 180, shortBreak: 60, longBreak: 120 };
+    const value = Math.min(limits[key], Math.max(1, Number(rawValue) || 1));
+    setDurations(previous => ({ ...previous, [key]: value }));
+    if (mode === key && !isLocked) setTimeLeft(value * 60);
   };
 
   const saveFocusSession = () => {
@@ -31,7 +66,7 @@ export default function FocusTimer() {
     savedRef.current = true;
     const currentRunSeconds = runningSinceRef.current === null ? 0 : Math.max(0, Math.floor((Date.now() - runningSinceRef.current) / 1000));
     const elapsedSeconds = elapsedSecondsRef.current + currentRunSeconds;
-    const duration = Math.min(modes.focus.minutes, Math.floor(elapsedSeconds / 60));
+    const duration = Math.min(durations.focus, Math.floor(elapsedSeconds / 60));
     if (duration < 1) return;
 
     let finalSubjectId = null;
@@ -127,7 +162,7 @@ export default function FocusTimer() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const progress = ((modes[mode].minutes * 60 - timeLeft) / (modes[mode].minutes * 60)) * 100;
+  const progress = Math.min(100, Math.max(0, ((modes[mode].minutes * 60 - timeLeft) / (modes[mode].minutes * 60)) * 100));
   const TimerIcon = modes[mode].icon;
 
   const timerFace = (
@@ -173,6 +208,21 @@ export default function FocusTimer() {
             </p>
           )}
         </div>
+
+        {!isLocked && (
+          <div className="mb-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/50 p-4">
+            <h3 className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Customize your timer</h3>
+            <div className="grid grid-cols-3 gap-3">
+              {[{ key: 'focus', label: 'Focus', max: 180 }, { key: 'shortBreak', label: 'Short break', max: 60 }, { key: 'longBreak', label: 'Long break', max: 120 }].map(item => (
+                <label key={item.key} className="min-w-0 text-xs font-medium text-slate-600 dark:text-slate-300">
+                  <span className="mb-1 block">{item.label} (min)</span>
+                  <input type="number" min="1" max={item.max} step="1" value={durations[item.key]} onChange={event => updateDuration(item.key, event.target.value)} aria-label={`${item.label} duration in minutes`} className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-accent-violet dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                </label>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Focus: 1–180 min · Short break: 1–60 min · Long break: 1–120 min. Your choices are remembered on this browser.</p>
+          </div>
+        )}
 
         {!isLocked && mode === 'focus' && (
           <div className="mb-7">
