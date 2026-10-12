@@ -4,41 +4,62 @@ import { v4 as uuidv4 } from 'uuid';
 const AppContext = createContext();
 
 const initialSubjects = [];
-
 const initialTasks = [];
+const ACTIVITY_RESET_KEY = 'studymate-activity-reset-v1';
+
+// Run a one-time data migration for the fresh launch.
+// Only task history and study activity are cleared; subjects, timetable,
+// profile, and preferences are deliberately preserved.
+const resetActivityDataOnce = () => {
+  try {
+    if (localStorage.getItem(ACTIVITY_RESET_KEY) === 'done') return;
+
+    localStorage.setItem('studymate-tasks', JSON.stringify(initialTasks));
+    localStorage.setItem('studymate-sessions', JSON.stringify([]));
+    localStorage.setItem(ACTIVITY_RESET_KEY, 'done');
+  } catch {
+    // Storage may be unavailable; the app should still be able to render.
+  }
+};
+
+// Browser storage can be unavailable or contain invalid JSON; keep the app usable either way.
+const readStorage = (key, fallback) => {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+};
 
 export function AppProvider({ children }) {
   const [subjects, setSubjects] = useState(() => {
-    const saved = localStorage.getItem('studymate-subjects');
-    return saved ? JSON.parse(saved) : initialSubjects;
+    return readStorage('studymate-subjects', initialSubjects);
   });
 
   const [tasks, setTasks] = useState(() => {
-    const saved = localStorage.getItem('studymate-tasks');
-    return saved ? JSON.parse(saved) : initialTasks;
+    // Clear existing task/session history once, before loading task state.
+    resetActivityDataOnce();
+    return readStorage('studymate-tasks', initialTasks);
   });
 
   const [studySessions, setStudySessions] = useState(() => {
-    const saved = localStorage.getItem('studymate-sessions');
-    return saved ? JSON.parse(saved) : [];
+    return readStorage('studymate-sessions', []);
   });
 
   const [timetable, setTimetable] = useState(() => {
-    const saved = localStorage.getItem('studymate-timetable');
-    // Default empty timetable
-    return saved ? JSON.parse(saved) : { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] };
+    return readStorage('studymate-timetable', { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] });
   });
 
   const [settings, setSettings] = useState(() => {
-    const saved = localStorage.getItem('studymate-settings');
-    return saved ? JSON.parse(saved) : {
+    return readStorage('studymate-settings', {
       studentName: '',
       isFirstLaunch: true,
       dailyGoalMinutes: 120,
       availableDays: [1, 2, 3, 4, 5],
       preferredStartTime: '18:00',
       preferredEndTime: '22:00'
-    };
+    });
   });
 
   useEffect(() => {
