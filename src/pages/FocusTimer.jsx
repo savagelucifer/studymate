@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { Card, CardContent } from '../components/ui/Card';
-import { Play, Coffee, Brain, ShieldCheck, Square, LogOut } from 'lucide-react';
+import { Play, Pause, Coffee, Brain, ShieldCheck, Square, LogOut } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -16,6 +16,8 @@ export default function FocusTimer() {
   const [selectedSubject, setSelectedSubject] = useState('');
   const [sessionSaved, setSessionSaved] = useState(false);
   const startedAtRef = useRef(null);
+  const elapsedSecondsRef = useRef(0);
+  const runningSinceRef = useRef(null);
   const savedRef = useRef(false);
 
   const modes = {
@@ -27,7 +29,8 @@ export default function FocusTimer() {
   const saveFocusSession = () => {
     if (savedRef.current || mode !== 'focus' || startedAtRef.current === null) return;
     savedRef.current = true;
-    const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAtRef.current) / 1000));
+    const currentRunSeconds = runningSinceRef.current === null ? 0 : Math.max(0, Math.floor((Date.now() - runningSinceRef.current) / 1000));
+    const elapsedSeconds = elapsedSecondsRef.current + currentRunSeconds;
     const duration = Math.min(modes.focus.minutes, Math.floor(elapsedSeconds / 60));
     if (duration < 1) return;
 
@@ -81,14 +84,20 @@ export default function FocusTimer() {
       setSessionSaved(false);
       savedRef.current = false;
       startedAtRef.current = Date.now();
+      elapsedSecondsRef.current = 0;
     }
+    runningSinceRef.current = Date.now();
+    setIsStopped(false);
     setIsActive(true);
   };
 
   const stopTimer = () => {
+    if (runningSinceRef.current !== null) {
+      elapsedSecondsRef.current += Math.max(0, Math.floor((Date.now() - runningSinceRef.current) / 1000));
+      runningSinceRef.current = null;
+    }
     setIsActive(false);
     setIsStopped(true);
-    saveFocusSession();
   };
 
   const quitSession = () => {
@@ -98,6 +107,8 @@ export default function FocusTimer() {
     setIsStopped(false);
     setTimeLeft(modes[mode].minutes * 60);
     startedAtRef.current = null;
+    runningSinceRef.current = null;
+    elapsedSecondsRef.current = 0;
     savedRef.current = false;
     setSessionSaved(false);
     setSelectedSubject('');
@@ -191,6 +202,11 @@ export default function FocusTimer() {
         ) : (
           <div className="space-y-3">
             {sessionSaved && <p className="text-center text-sm text-emerald-500">Study time saved to your progress.</p>}
+            {timeLeft > 0 && (
+              <button type="button" onClick={() => { runningSinceRef.current = Date.now(); setIsStopped(false); setIsActive(true); }} className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent-violet px-5 py-4 font-semibold text-white shadow-lg shadow-violet-500/20 transition hover:brightness-110 active:scale-[0.99]">
+                <Play size={18} fill="currentColor" /> Resume Timer
+              </button>
+            )}
             <button type="button" onClick={quitSession} className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 py-4 font-semibold text-white shadow-lg transition hover:bg-rose-700 active:scale-[0.99]">
               <LogOut size={18} /> Quit Session
             </button>
